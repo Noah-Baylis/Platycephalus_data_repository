@@ -1,0 +1,323 @@
+#Temperature Quotient Analysis
+
+```{r}
+library(janitor)
+```
+
+
+```{r}
+Platy_quotient_data <- read.csv("Quotient data NSI.csv")
+
+
+Platy_quotient_data <- Platy_quotient_data %>% clean_names()
+
+```
+
+```{r}
+Platy_quotient_data <- Platy_quotient_data %>%
+  pivot_longer(cols = 3:8, names_to = "species", values_to = "abundance")#cols = species columns only
+
+Platy_quotient_data <- Platy_quotient_data %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+Platy_quotient_data <- Platy_quotient_data %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+Platy_quotient_data$species <- factor(Platy_quotient_data$species,
+                                          levels = c("P. bassensis", "P. caeruleopunctatus", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+```
+
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 15, colour = "black"),
+             axis.title = element_text(size = 15, colour = "black"))
+
+trans <- max(Platy_quotient_data$temp_freq)/max(Platy_quotient_data$abundance)
+
+NSIquotient <- ggplot(data = Platy_quotient_data) + 
+  geom_col(aes(x = temp, y = temp_freq), position = "identity", colour = "black", fill = "white", width = 0.5) +
+  geom_line(aes(x = temp, y = abundance*trans, colour = species), size = 2) +
+  geom_point(aes(x = temp, y = abundance*trans, colour = species), size = 3) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_bw() + 
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Temperature frequency (%)") +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed", size = 2) +
+  scale_x_continuous(breaks = seq(20, 27, 1)) +
+  theme(axis.title=element_text(size = 25)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+  theme(legend.title = element_text(size = 20)) +
+  theme(legend.position = "none")
+ggsave("Revised NSI Temperature Quotient Graph.pdf", width = 30, height = 20, units = "cm")
+```
+
+```{r}
+Platy_quotient_data_PH <- read.csv("PH quotient data.csv")
+Platy_quotient_data_PH <- Platy_quotient_data_PH %>% clean_names()
+```
+
+```{r}
+Platy_quotient_data_PH <- Platy_quotient_data_PH %>%
+  pivot_longer(cols = 3:8, names_to = "species", values_to = "abundance")#cols = species columns only
+
+Platy_quotient_data_PH <- Platy_quotient_data_PH %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+Platy_quotient_data_PH <- Platy_quotient_data_PH %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+Platy_quotient_data_PH$species <- factor(Platy_quotient_data_PH$species,
+                                          levels = c("P. bassensis", "P. caeruleopunctatus", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+```
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 15, colour = "black"),
+             axis.title = element_text(size = 15, colour = "black"))
+
+trans <- max(Platy_quotient_data_PH$temp_freq)/max(Platy_quotient_data_PH$abundance)
+
+PHquotient <- ggplot(data = Platy_quotient_data_PH) + 
+  geom_col(aes(x = temp_bin, y = temp_freq), position = "identity", colour = "black", fill = "white", width = 0.5) +
+  geom_line(aes(x = temp_bin, y = abundance*trans, colour = species), size = 2) +
+  geom_point(aes(x = temp_bin, y = abundance*trans, colour = species), size = 3) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_bw() + 
+  theme(axis.text = element_text(size = 15, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Temperature frequency (%)") +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed", size = 2) +
+  scale_x_continuous(breaks = seq(15, 25, 1)) +
+  theme(axis.title=element_text(size = 25)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+  theme(legend.title = element_text(size = 20)) +
+  theme(legend.position = "none")
+ggsave("Revised PH Temperature Quotient Graph.pdf", width = 30, height = 20, units = "cm")
+```
+
+```{r}
+Platy_quotient_data_MAI <- read.csv("MAI Quotient data.csv")
+Platy_quotient_data_MAI <- Platy_quotient_data_MAI %>% clean_names()
+```
+
+```{r}
+Platy_quotient_data_MAI <- Platy_quotient_data_MAI %>%
+  pivot_longer(cols = 3:8, names_to = "species", values_to = "abundance")#cols = species columns only
+
+Platy_quotient_data_MAI <- Platy_quotient_data_MAI %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+Platy_quotient_data_MAI <- Platy_quotient_data_MAI %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+Platy_quotient_data_MAI$species <- factor(Platy_quotient_data_MAI$species,
+                                          levels = c("P. bassensis", "P. caeruleopunctatus", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+```
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 15, colour = "black"),
+             axis.title = element_text(size = 15, colour = "black"))
+
+trans <- max(Platy_quotient_data_MAI$temp_n)/max(Platy_quotient_data_MAI$abundance)
+
+ MAIquotient <- ggplot(data = Platy_quotient_data_MAI) + 
+  geom_col(aes(x = temp, y = temp_n), position = "identity", colour = "black", fill = "white", width = 0.5) +
+  geom_line(aes(x = temp, y = abundance*trans, colour = species), size = 2) +
+  geom_point(aes(x = temp, y = abundance*trans, colour = species), size = 3) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_light() + 
+  theme(axis.text = element_text(size = 15, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Temperature frequency (%)") +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed", size = 2) +
+  scale_x_continuous(breaks = seq(11, 19, 1)) +
+   theme(axis.title=element_text(size = 25)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+   theme(legend.title = element_text(size = 20)) +
+  theme(legend.position = "bottom")
+ggsave("Revised MAI Temperature Quotient Graph.pdf", width = 30, height = 20, units = "cm")
+```
+
+```{r}
+install.packages("patchwork")
+
+library(patchwork)
+
+final_figure <- NSIquotient/PHquotient + plot_annotation(tag_levels = "a")
+
+final_figure
+```
+#Other species 
+
+```{r}
+NSI_quotient_other <- read.csv("Quotient data NSI.csv")
+
+
+NSI_quotient_other <- NSI_quotient_other %>% clean_names()
+```
+
+```{r}
+NSI_quotient_other <- NSI_quotient_other %>%
+  pivot_longer(cols = 9:13, names_to = "species", values_to = "abundance")#cols = species columns only
+
+NSI_quotient_other <- NSI_quotient_other %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+NSI_quotient_other <- NSI_quotient_other %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+NSI_quotient_other$species <- factor(NSI_quotient_other$species,
+                                          levels = c("O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 12, colour = "black"),
+             axis.title = element_text(size = 12, colour = "black"))
+
+trans <- max(NSI_quotient_other$temp_freq)/max(NSI_quotient_other$abundance)
+
+NSIquotientother <- ggplot(data = NSI_quotient_other) + 
+  geom_col(aes(x = temp, y = temp_freq), position = "identity") +
+  geom_line(aes(x = temp, y = abundance*trans, colour = species)) +
+  geom_point(aes(x = temp, y = abundance*trans, colour = species)) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_bw() + 
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Temperature frequency (%)") +
+  scale_color_manual(values = c("brown4", "mediumpurple", "yellow", "turquoise1", "hotpink"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic")) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed") +
+  scale_x_continuous(breaks = seq(20, 27, 1)) +
+  theme(axis.title=element_text(size = 15))
+ggsave("Other NSI Temperature Quotient Graph.pdf", width = 26, height = 15, units = "cm")
+```
+
+```{r}
+PH_quotient_other <- read.csv("PH quotient data.csv")
+PH_quotient_other <- PH_quotient_other %>% clean_names()
+```
+
+```{r}
+PH_quotient_other <- PH_quotient_other %>%
+  pivot_longer(cols = 9:13, names_to = "species", values_to = "abundance")#cols = species columns only
+
+PH_quotient_other <- PH_quotient_other %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+PH_quotient_other <- PH_quotient_other %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+PH_quotient_other$species <- factor(PH_quotient_other$species,
+                                          levels = c("O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 12, colour = "black"),
+             axis.title = element_text(size = 12, colour = "black"))
+
+trans <- max(PH_quotient_other$temp_freq)/max(PH_quotient_other$abundance)
+
+PHquotientother <- ggplot(data = PH_quotient_other) + 
+  geom_col(aes(x = temp_bin, y = temp_freq), position = "identity") +
+  geom_line(aes(x = temp_bin, y = abundance*trans, colour = species)) +
+  geom_point(aes(x = temp_bin, y = abundance*trans, colour = species)) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_bw() + 
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Temperature frequency (%)") +
+  scale_color_manual(values = c("brown4", "mediumpurple", "yellow", "turquoise1", "hotpink"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic")) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed") +
+  scale_x_continuous(breaks = seq(15, 25, 1)) +
+  theme(axis.title=element_text(size = 15))
+ggsave("Other PH Temperature Quotient Graph.pdf", width = 26, height = 15, units = "cm")
+```
+
+```{r}
+MAI_quotient_other <- read.csv("MAI Quotient data.csv")
+MAI_quotient_other <- MAI_quotient_other %>% clean_names()
+```
+
+```{r}
+MAI_quotient_other <- MAI_quotient_other %>%
+  pivot_longer(cols = 9:14, names_to = "species", values_to = "abundance")#cols = species columns only
+
+MAI_quotient_other <- MAI_quotient_other %>% 
+  mutate(species = str_replace(species, pattern = "_", ". "))
+
+MAI_quotient_other <- MAI_quotient_other %>%
+  mutate(species = str_to_sentence(species)) %>%
+  mutate(species = if_else(species == "Ratabulus. spp", "Ratabulus spp.", species))
+```
+
+```{r}
+MAI_quotient_other$species <- factor(MAI_quotient_other$species,
+                                          levels = c("I. japonica", "O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+```{r}
+theme_set(theme_bw())
+theme_update(axis.text = element_text(size = 12, colour = "black"),
+             axis.title = element_text(size = 12, colour = "black"))
+
+trans <- max(MAI_quotient_other$temp_n)/max(MAI_quotient_other$abundance)
+
+MAIquotientother <- ggplot(data = MAI_quotient_other) + 
+  geom_col(aes(x = temp, y = temp_n), position = "identity") +
+  geom_line(aes(x = temp, y = abundance*trans, colour = species)) +
+  geom_point(aes(x = temp, y = abundance*trans, colour = species)) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./trans, 
+                                         name = "Larval fish abundance quotient"), limits = c(0, 30)) +
+  labs(color = "Species") +
+  #theme_bw() + 
+  theme(axis.text = element_text(size = 12, colour = "black")) +
+  xlab(expression(paste("Temperature (", degree, "C)"))) +
+  ylab("Frequency (%)") +
+  scale_color_manual(values = c("brown4", "burlywood4", "slategray4", "yellowgreen", "tan2", "hotpink"),name = "Taxa") +
+  theme(legend.text = element_text(face = "italic")) +
+  geom_hline(yintercept = 1*trans, linetype = "dashed") +
+  scale_x_continuous(breaks = seq(11, 19, 1)) 
+ggsave("Other MAI Temperature Quotient Graph.pdf", width = 26, height = 15, units = "cm")
+```
+
