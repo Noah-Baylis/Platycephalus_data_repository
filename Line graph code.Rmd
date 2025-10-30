@@ -1,0 +1,686 @@
+#Line graphs
+
+################################1. SETUP
+
+# load packages
+library(dplyr)
+library(vegan)
+library(ggplot2)
+
+# create a theme to make your graphs look clean (you can call it anything you like, and edit anything you like in there too)
+theme_IRboxplot <- theme_classic() +
+  theme(legend.background = element_rect(colour = 'black', fill = 'transparent', linetype='solid'),
+        legend.box.background = element_rect(fill = "transparent"),
+        axis.line = element_line(size = 1, colour = "black"),
+        axis.text.x = element_text(angle = 45, hjust = 1, colour = "black"), #this "angle" function is how you tilt the axis text
+        axis.text.y = element_text(colour = "black"),
+        panel.background= element_rect(fill="transparent"),
+        plot.background = element_rect(fill = "transparent"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank())
+
+#Create a list of all species names
+#These should be the same as all the species you have, in an order that matches how R automatically plots the species
+#This can be used as a replacement label in your legends - means you won't have awkward full stops and underscores in your plots
+#You could also do this by replacing names in your long dataset permanently
+Spp.labs <- c("Arnoglossus spp.", "Asterorhombus sp.", "Crossorhombus spp.", "Engyprosopon spp.", "Grammatobothus spp.", "Lophonectes gallus", "Cynoglossidae", "Paralichthyidae", "Pleuronectidae", "Samaridae", "Soleidae")
+
+#if you want fancy colours - use the paletteer package https://cran.r-project.org/web/packages/paletteer/paletteer.pdf
+library(paletteer)
+spp.colours <- as.list(paletteer_d("ggpomological::pomological_palette"))
+
+
+###################################2. TIME SERIES
+# This uses MAI as an example - the initial "MAI_dat" dataset is jsut data from MAI in LONG FORMAT 
+# (i.e. it has a single "species" column with all the species names and a seperate abundance column, rather than each species as its own column heading)
+
+
+#splitting the data into two datasets - one for bothids (platys in your case) and one of everything else
+# you don't need to use the "grepl" functio nto do this, you can jsut list all the species out, i just think this is cleaner :)
+
+MAI_dat_bothids <- MAI_dat %>%
+  filter(grepl('Bothidae', Species))
+
+MAI_dat_other <- MAI_dat %>%
+  filter(!grepl('Bothidae', Species))
+
+#creating summary tables for each new split dataset
+MAI_summary_bothids <- MAI_dat_bothids %>%
+  group_by(Species, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(Conc_log),
+            sd_Concentration_100 = sd(Conc_log),
+            SE_Concentration_100 = sd(Conc_log)/sqrt(n()))
+
+MAI_summary_other <- MAI_dat_other %>%
+  group_by(Species, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(Conc_log),
+            sd_Concentration_100 = sd(Conc_log),
+            SE_Concentration_100 = sd(Conc_log)/sqrt(n()))
+
+#creating your plots
+#NOTE: if you don't want to use paletteer, replace "scale_color_paleteer_d" with "scale_color"discrete" and remove the stuff in brackets linking to ggsci
+#IMPORTANT NOTE!!!!
+#For the second dataset, I had to use "Spp.labs[7:11] to instruct r to start halfway through my species list when making the legends
+#you can do this, or make a new Spp.labs list (named something else) for each of your culled datasets (one list of names for platys, one for the others)
+#if this is all too hard/confusing, jsut remove the "labels = Spp.labs" chunk throughout the code for now and come back to it next week
+myplot <- ggplot(data=MAI_summary_bothids, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=Species)) + 
+  labs(x = "Season (Year)", 
+       y = bquote('Mean Concentration (Individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=Species, color = Species))+
+  geom_point(aes(color = Species, shape = Species)) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.2, color = Species), linetype = 1) +
+  scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs) +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa", labels = Spp.labs) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic"))
+myplot
+
+
+myplot2 <- ggplot(data=MAI_summary_other, 
+                  aes(x=SeasonYr, y=mean_Concentration_100, group=Species)) + 
+  labs(x = "Season (Year)", 
+       y = bquote('Mean Concentration (Individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=Species, color = Species))+
+  geom_point(aes(color = Species, shape = Species)) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.2, color = Species), linetype = 1) +
+  scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs[7:11]) +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa", labels = Spp.labs[7:11]) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs[7:11]) +
+  theme_IRboxplot
+myplot2
+
+
+##################################3. T/S concentration plot
+#this uses a long-form dataset again, but this time it's absolutely everything together - all the physical variables, all the stations
+# I combined my base plot - the T/S/conc plot with the circles - and the mean temps - lines over the top showing seasonal station mean - in illustrator
+# I'll show you how to make both plots here and how to make the axes line up exactly, and you can have a go at merging them in whatever photo editing software you like
+
+
+#############3A. MAKING THE BASE T/S/CONC PLOTS
+
+#Again, we are going to split this combined datet into bothids(platys) and others
+#I was lazy here and didn't use grepl, you can do it whatever way you want
+Combined3_bothids <- Combined3 %>%
+  filter(Species == "Bothidae_Arnoglossus"|
+           Species == "Bothidae_Asterorhombus"|
+           Species == "Bothidae_Crossorhombus"|
+           Species == "Bothidae_Engyprosopon"|
+           Species == "Bothidae_Grammatobothus"|
+           Species == "Bothidae_Lophonectes.gallus")
+
+#this is just making sure the species column is actually reading as a factor
+Combined3_bothids$Species <- as.factor(Combined3_bothids$Species)
+
+#MAKING THE INITIAL PLOT
+#Again, here i got lazy and didnt use my Spp.labs list for the legend. you can do it either way
+#And again, you don't have to use paletteer if you don't want to
+#THE YLIM LINE IS VRY IMPORTANT - this allows us to align our Y axes exactly with the next plot we are about to make. 
+  # YOUR LIMITS will likely be different to mine "(11.5, 27)" 
+  # make this plot without Ylim first (i.e. delete "ylim(11.5,27) +"), check out approximately what the minimum/maximum  temp limits of the plot areare, and then put them in manually 
+testplot <- ggplot(data = Combined3_bothids, aes(x = Salinity, y = Temperature, group = Species)) +
+  geom_point(aes(color = Species, size = Concentration), position = "jitter") +
+  labs(x = "Mean Salinity (Practical Salinity Units) <30m", y = bquote('Mean Temperature (°c) <30m')) +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa", labels = c("Arnoglossus spp.", "Asterorhombus sp.", "Crossorhombus spp.", "Engyprosopon spp.", "Grammatobothus spp.", "Lophonectes gallus")) +
+  ylim(11.5,27) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic"))
+testplot
+
+#Then repeat the above code for non-platys
+
+
+
+#############3B. MAKING THE TEMPERATURE SEASONAL MEAN LINES TO OVERLAY ONTO THE PLOT
+
+#first, we have to make a dataset that gives you the seasonal temperature means at each station - I used "CTD_summary" as a base to do this
+#I'm not sure what your dataset is called that just has the physical variables for the top 30m of water - mine is "CTD_summary" and that's what we will be using here
+#the code between the hash lines is how to make the CTD summary dataframe jsut in case you need it
+
+################################################################################
+#read in dataset
+CTD <- read.csv(file = "data/BGC Data Final/IMOS_CTD.csv", header = TRUE)
+str(CTD)
+unique(CTD$site_code)
+#make site code a factor
+CTD$site_code <- factor(CTD$site_code, levels = c("NRSNSI", "NRSPHB", "NRSMAI"))
+
+#remove readings for depths above 30m
+CTD <- CTD %>%
+  filter(DEPTH <= 30)
+
+#creating properly read date and time columns
+CTD$TIME <- as_datetime(CTD$TIME)
+str(CTD)
+
+CTD <- CTD %>%
+  mutate(Date = as_date(TIME)) %>%
+  relocate(Date, .before = TIME)
+str(CTD)
+
+#Creating culled dataset that averages important variable across the top 30m of water
+
+CTD_summary <- CTD %>% 
+  group_by(site_code, Date) %>% 
+  summarise(mean_Salinity = mean(PSAL, na.rm = TRUE),
+            sd_Salinity = sd(PSAL, na.rm = TRUE),
+            SE_Salinity = sd(PSAL, na.rm = TRUE)/sqrt(n()),
+            mean_DOX = mean(DOX2, na.rm = TRUE),
+            sd_DOX = sd(DOX2, na.rm = TRUE),
+            SE_DOX = sd(DOX2, na.rm = TRUE)/sqrt(n()),
+            mean_TURB = mean(TURB, na.rm = TRUE),
+            sd_TURB = sd(TURB, na.rm = TRUE),
+            SE_TURB = sd(TURB, na.rm = TRUE)/sqrt(n()),
+            mean_CPHL = mean(CPHL, na.rm = TRUE),
+            sd_CPHL = sd(CPHL, na.rm = TRUE),
+            SE_CPHL = sd(CPHL, na.rm = TRUE)/sqrt(n()), 
+            mean_CNDC = mean(CNDC, na.rm = TRUE),
+            sd_CNDC = sd(CNDC, na.rm = TRUE),
+            SE_CNDC = sd(CNDC, na.rm = TRUE)/sqrt(n()),
+            mean_DESC = mean(DESC, na.rm = TRUE),
+            sd_DESC = sd(DESC, na.rm = TRUE),
+            SE_DESC = sd(DESC, na.rm = TRUE)/sqrt(n()),
+            mean_TEMP = mean(TEMP, na.rm = TRUE),
+            sd_TEMP = sd(TEMP, na.rm = TRUE),
+            SE_TEMP = sd(TEMP, na.rm = TRUE)/sqrt(n()))
+
+write.csv(CTD_summary, file="data/ctd_summary.csv")
+###############################################################################
+
+#creating a month and season column in the CTD dataset
+CTD_summary2 <- CTD_summary
+
+
+CTD_summary2$Month <- substr(CTD_summary2$Date, 6,7)
+CTD_summary2$Month <- as.numeric(CTD_summary2$Month)
+CTD_summary2 <- CTD_summary2 %>% 
+  mutate(Season = ifelse(Month %in% 9:11, "Sp",
+                         ifelse(Month %in% c(12,1,2), "Su",
+                                ifelse(Month %in% 3:5, "Au",
+                                       "Wi"))))
+
+CTD_summary2 <- CTD_summary2 %>%
+  mutate(Season2 = ifelse(Season =="Wi"|Season == "Sp", "Winter-Spring",
+                          "Summer-Autumn"))
+
+#FINALLY, creating a dataset that summarises the mean temperature at each station for each season
+CTD_temp_season <- CTD_summary2 %>%
+  group_by(site_code, Season2) %>%
+  summarise(Temp = mean(mean_TEMP),
+            sd = sd(mean_TEMP))
+
+
+#FINALLY, MAKING THE TEMP MEAN OVERLAY PLOT
+#again, the ylim here is rly important
+#it's also important that, in the theme at the start, we specified for the background to be BLANK, that will mean we can save it as a transparent PNG so that we can merge it with our other plot
+
+testplot2 <- ggplot(data = Combined3_bothids, aes(x = Salinity, y = Temperature)) +
+  labs(x = "Mean Salinity (Practical Salinity Units) <30m", y = bquote('Mean Temperature (°c) <30m')) +
+  geom_hline(data = CTD_temp_season, aes(yintercept = Temp, colour = site_code, linetype = Season2)) +
+  scale_linetype_discrete(name = "Season") +
+  scale_color_discrete(name = "Site", labels = c("NSI", "PH", "MAI")) +
+  ylim(11.5,27) +
+  theme_IRboxplot +
+  theme(legend.position = "bottom")
+testplot2
+
+#as noted above - we need the background to be transparent, so use "bg = transparent" in your ggsave line and save as a .png - example below
+ggsave(testplot3, file = "results/TS_species/updated/TS_other.png", bg = "transparent", width = 26, height = 15, units = "cm")
+
+#Begins here
+
+```{r}
+library(dplyr)
+library(vegan)
+library(ggplot2)
+```
+
+```{r}
+theme_IRboxplot <- theme_classic() +
+  theme(legend.background = element_rect(colour = 'black', fill = 'transparent', linetype='solid'),
+        legend.box.background = element_rect(fill = "transparent"),
+        axis.line = element_line(size = 1, colour = "black"),
+        axis.text.x = element_text(angle = 45, hjust = 1, colour = "black"), #this "angle" function is how you tilt the axis text
+        axis.text.y = element_text(colour = "black"),
+        panel.background= element_rect(fill="transparent"),
+        plot.background = element_rect(fill = "transparent"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank())
+
+```
+
+```{r}
+Spp.labs <- c("P. bassensis", "P. caeruleopunctatus", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa")
+```
+
+```{r}
+library(paletteer)
+spp.colours <- as.list(paletteer_d("ggpomological::pomological_palette"))
+```
+
+#MAI Time-series
+
+```{r}
+Dat_platys_MAI <- PlatyMAI %>%
+  filter(Species == "A..jugosa"|
+           Species == "P..bassensis"|
+           Species == "P..caeruleopunctatus"|
+           Species == "P..endrachtensis"|
+           Species == "P..grandispinis"|
+           Species == "P..richardsoni")
+```
+
+
+```{r}
+Dat_platys <- Combined_data_long %>%
+  filter(Species == "A..jugosa"|
+           Species == "P..bassensis"|
+           Species == "P..caeruleopunctatus"|
+           Species == "P..endrachtensis"|
+           Species == "P..grandispinis"|
+           Species == "P..richardsoni")
+         
+         
+Dat_other_MAI <- PlatyMAI %>%
+  filter(!grepl('P..', Species))
+```
+
+```{r}
+Dat_other_MAI <- Dat_other_MAI %>%
+  filter(!grepl('A..', Species))
+```
+
+
+
+```{r}
+Summary_platys <- Dat_platys_MAI %>%
+  group_by(species_nice, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+
+Summary_other <- Dat_other_MAI %>%
+  group_by(Species, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+```
+
+```{r}
+myplot <- ggplot(data=Summary_platys, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=species_nice)) + 
+  labs(x = "Season (Year)",
+       y = NULL) +
+  geom_line(aes(linetype=species_nice, color = species_nice), size = 1.5)+
+  geom_point(aes(color = species_nice, shape = species_nice), size = 2) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.5, color = species_nice), linetype = 1.5) +
+   scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs) +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa", labels = Spp.labs) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  theme(legend.title = element_text(size = 20)) +
+  theme(axis.title=element_text(size = 25)) +
+  theme(axis.text.x = element_text(size = 22.5)) +
+  theme(axis.text.y = element_text(size = 22.5)) +
+  theme(legend.position = "bottom")
+myplot
+ggsave(myplot, file = "2025_MAI_Line_graph1.pdf", bg = "transparent", width = 30, height = 25, units = "cm")
+```
+#R colours
+http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
+
+
+```{r}
+Summary_platys$Species <- as.factor(Summary_platys$Species)
+```
+
+
+```{r}
+myplot2 <- ggplot(data=Summary_other, 
+                  aes(x=SeasonYr, y=mean_Concentration_100, group=Species)) + 
+  labs(x = "Season (Year)", 
+       y = bquote('Mean Concentration (Individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=Species, color = Species))+
+  geom_point(aes(color = Species, shape = Species)) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.2, color = Species), linetype = 1) +
+  scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa") +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa") +
+  scale_shape_discrete(name = "Taxa") +
+  theme_IRboxplot
+myplot2
+
+#Disregard above block
+```
+#TS Concentration Plots
+
+```{r}
+Combined_data_long$Species <- as.factor(Combined_data_long$Species)
+Combined_data_nozero <- Combined_data_long %>%
+  filter(species_conc_100 !=0)
+```
+
+```{r}
+Combined_data_platys <- Combined_data_nozero %>%
+  filter(Species == "A..jugosa"|
+           Species == "P..bassensis"|
+           Species == "P..caeruleopunctatus"|
+           Species == "P..endrachtensis"|
+           Species == "P..grandispinis"|
+           Species == "P..richardsoni")
+```
+          
+```{r}
+Combined_data_platys$Species <- as.factor(Combined_data_platys$Species)
+```
+
+```{r}
+Spp.labs3 <- c("O. pedimacula", "P. fuscus", "Ratabulus spp.", "S. tuberculata")
+```
+   
+       
+```{r}
+testplot <- ggplot(data = Combined_data_platys, aes(x = mean_Salinity, y = mean_TEMP, group = species_nice)) +
+  geom_point(aes(color = species_nice, size = species_conc_100), position = "jitter") +
+  geom_hline(data = CTD_temp_season, aes(yintercept = Temp, linetype = Season2)) +
+  labs(x = "Mean Salinity", y = bquote('Mean Temperature (°C)')) +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa") +
+  ylim(11.5,27) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic")) +
+  scale_size_continuous(name = 'Concentration per 100'~m^3*'') +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa", labels = Spp.labs) +
+  theme(axis.title=element_text(size = 25)) +
+  theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+  theme(legend.position = "right")
+testplot
+ggsave(testplot, file = "Revised PDF TSplot.pdf", bg = "transparent", width = 30, height = 20, units = "cm")
+```
+#TS Pot 2
+
+```{r}
+Combined_data_platys_2 <- Combined_data_nozero %>%
+  filter(Species == "O..pedimacula"|
+           Species == "P..fuscus"|
+           Species == "Ratabulus.spp"|
+           Species == "S..tuberculata")
+```
+
+```{r}
+Combined_data_platys_2$species_nice <- factor(Combined_data_platys_2$species_nice, levels = c("O. pedimacula", "P. fuscus", "Ratabulus spp.", "S. tuberculata"))
+```
+
+
+```{r}
+Combined_data_platys_2$Species <- as.factor(Combined_data_platys_2$Species)
+```
+
+```{r}
+testplot2 <- ggplot(data = Combined_data_platys_2, aes(x = mean_Salinity, y = mean_TEMP, group = species_nice)) +
+  geom_point(aes(color = species_nice, size = species_conc_100), position = "jitter") +
+  labs(x = "Mean Salinity", y = bquote('Mean Temperature (°C)')) +
+  scale_color_paletteer_d("ggsci::default_locuszoom", name = "Taxa") +
+  ylim(11.5,27) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic")) +
+  scale_size_continuous(name = 'Concentration per 100'~m^3*'') +
+  scale_color_manual(values = c("brown4", "mediumpurple", "turquoise1", "hotpink"),name = "Taxa", labels = Spp.labs3) +
+  theme(axis.title=element_text(size = 15))
+testplot2
+ggsave(testplot2, file = "Alt Supplemenatary TSplot.png", bg = "transparent", width = 26, height = 15, units = "cm")
+```
+
+
+```{r}
+CTD_summary2 <- CTD_summary
+
+
+CTD_summary2$Month <- substr(CTD_summary2$Date, 6,7)
+CTD_summary2$Month <- as.numeric(CTD_summary2$Month)
+CTD_summary2 <- CTD_summary2 %>% 
+  mutate(Season = ifelse(Month %in% 9:11, "Sp",
+                         ifelse(Month %in% c(12,1,2), "Su",
+                                ifelse(Month %in% 3:5, "Au",
+                                       "Wi"))))
+
+CTD_summary2 <- CTD_summary2 %>%
+  mutate(Season2 = ifelse(Season =="Wi"|Season == "Sp", "Winter-Spring",
+                          "Summer-Autumn"))
+
+#FINALLY, creating a dataset that summarises the mean temperature at each station for each season
+CTD_temp_season <- CTD_summary2 %>%
+  group_by(site_code, Season2) %>%
+  summarise(Temp = mean(mean_TEMP),
+            sd = sd(mean_TEMP))
+CTD_temp_season$site_code <- factor(CTD_temp_season$site_code, levels = c("NRSNSI", "NRSPHB", "NRSMAI"))
+```
+
+```{r}
+testplot2 <- ggplot(data = Combined_platys, aes(x = mean_Salinity, y = mean_TEMP)) +
+  labs(x = NULL, y = bquote(NULL)) +
+  geom_hline(data = CTD_temp_season, aes(yintercept = Temp, colour = site_code, linetype = Season2)) +
+  scale_linetype_discrete(name = "Season") +
+  scale_color_discrete(name = "Site") +
+  ylim(11.5,27) +
+  theme_IRboxplot +
+  theme(legend.position = "bottom") +
+  theme(axis.title=element_text(size = 25)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) 
+testplot2
+
+#as noted above - we need the background to be transparent, so use "bg = transparent" in your ggsave line and save as a .png - example below
+ggsave(testplot2, file = "Revised meanlines no labels.png", bg = "transparent", width = 30, height = 20, units = "cm")
+```
+
+#For messing with scales
+https://ggplot2.tidyverse.org/reference/scale_size.html
+
+https://ggplot2.tidyverse.org/reference/guide_bins.html
+
+#PH Time series
+
+```{r}
+Dat_platys_PH <- PlatyPH %>%
+  filter(Species == "A..jugosa"|
+           Species == "P..bassensis"|
+           Species == "P..caeruleopunctatus"|
+           Species == "P..endrachtensis"|
+           Species == "P..grandispinis"|
+           Species == "P..richardsoni")
+```
+
+```{r}
+Summary_platys_PH <- Dat_platys_PH %>%
+  group_by(species_nice, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+```
+```{r}
+myplot <- ggplot(data=Summary_platys_PH, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=species_nice)) + 
+  labs(x = NULL, 
+       y = bquote('Log'^10*' mean concentration (individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=species_nice, color = species_nice), size = 1.5)+
+  geom_point(aes(color = species_nice, shape = species_nice), size = 2) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.5, color = species_nice), linetype = 1.5) +
+   #scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs) +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa", labels = Spp.labs) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  theme(legend.title = element_text(size = 20)) +
+  theme(axis.title=element_text(size = 25)) +
+theme(axis.text.y = element_text(size = 22.5)) +
+  theme(axis.text.x = element_text(size = 22.5)) +
+  theme(legend.position = "none")
+myplot
+ggsave(myplot, file = "2025_PH_Line_graph1.pdf", bg = "transparent", width = 30, height = 25, units = "cm")
+```
+#NSI Time series
+
+```{r}
+Dat_platys_NSI <- PlatyNSI %>%
+  filter(Species == "A..jugosa"|
+           Species == "P..bassensis"|
+           Species == "P..caeruleopunctatus"|
+           Species == "P..endrachtensis"|
+           Species == "P..grandispinis"|
+           Species == "P..richardsoni")
+```
+
+```{r}
+Summary_platys_NSI <- Dat_platys_NSI %>%
+  group_by(species_nice, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+```
+
+```{r}
+myplot3 <- ggplot(data=Summary_platys_NSI, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=species_nice)) + 
+  labs(x = NULL, 
+       y = NULL) +
+  geom_line(aes(linetype=species_nice, color = species_nice), size = 1.5)+
+  geom_point(aes(color = species_nice, shape = species_nice), size = 2) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.5, color = species_nice), linetype = 1.5) +
+   scale_x_discrete(name =NULL) +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs) +
+  scale_color_manual(values = c("blue4", "deepskyblue", "orange", "chartreuse", "purple", "red"),name = "Taxa", labels = Spp.labs) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic", size = 20)) +
+  theme(axis.title=element_text(size = 20)) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(size = 22.5)) +
+  theme(axis.text.y = element_text(size = 22.5))
+myplot3
+ggsave(myplot3, file = "2025_NSI_Line_graph1.pdf", bg = "transparent", width = 30, height = 25, units = "cm")
+```
+```{r}
+library(patchwork)
+```
+
+```{r}
+final_interannual <- myplot/myplot2/myplot3 + plot_annotation(tag_levels = "a")
+```
+#Other fish
+
+```{r}
+Spp.labs2 <- c("O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata")
+```
+
+```{r}
+Dat_platys_NSI2 <- PlatyNSI %>%
+  filter(Species == "O..pedimacula"|
+           Species == "P..fuscus"|
+           Species == "Ratabulus.spp"|
+           Species == "R..mcgroutheri"|
+           Species == "S..tuberculata")
+```
+
+```{r}
+Summary_platys_NSI2 <- Dat_platys_NSI2 %>%
+  group_by(species_nice, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+```
+```{r}
+Summary_platys_NSI2$species_nice <- factor(Summary_platys_NSI2$species_nice,
+                                          levels = c("O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+
+```{r}
+myplot3 <- ggplot(data=Summary_platys_NSI2, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=species_nice)) + 
+  labs(x = "Season (Year)", 
+       y = bquote('Mean Concentration (Individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=species_nice, color = species_nice))+
+  geom_point(aes(color = species_nice, shape = species_nice)) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.2, color = species_nice), linetype = 1) +
+   scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs2) +
+  scale_color_manual(values = c("brown4", "mediumpurple", "yellow", "turquoise1", "hotpink"),name = "Taxa", labels = Spp.labs2) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs2) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic")) +
+  theme(axis.title=element_text(size = 15))
+myplot3
+ggsave(myplot3, file = "Other_NSI_Line_graph1.pdf", bg = "transparent", width = 26, height = 15, units = "cm")
+```
+```{r}
+Dat_platys_PH2 <- PlatyPH %>%
+  filter(Species == "O..pedimacula"|
+           Species == "P..fuscus"|
+           Species == "Ratabulus.spp"|
+           Species == "R..mcgroutheri"|
+           Species == "S..tuberculata")
+```
+
+```{r}
+Summary_platys_PH2 <- Dat_platys_PH2 %>%
+  group_by(species_nice, SeasonYr) %>%
+  summarise(mean_Concentration_100 = mean(species_conc_log, na.rm = TRUE),
+            sd_Concentration_100 = sd(species_conc_log, na.rm = TRUE),
+            SE_Concentration_100 = sd(species_conc_log, na.rm = TRUE)/sqrt(n()))
+```
+
+```{r}
+Summary_platys_PH2$species_nice <- factor(Summary_platys_PH2$species_nice,
+                                          levels = c("O. pedimacula", "P. fuscus", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+```{r}
+myplot_otherPH <- ggplot(data=Summary_platys_PH2, 
+                 aes(x=SeasonYr, y=mean_Concentration_100, group=species_nice)) + 
+  labs(x = "Season (Year)", 
+       y = bquote('Mean Concentration (Individuals per 100'~m^3*')')) +
+  geom_line(aes(linetype=species_nice, color = species_nice))+
+  geom_point(aes(color = species_nice, shape = species_nice)) + 
+  geom_errorbar(aes(ymin=mean_Concentration_100 - SE_Concentration_100,
+                    ymax=mean_Concentration_100 + SE_Concentration_100 ,
+                    width = 0.2, color = species_nice), linetype = 1) +
+   scale_x_discrete(name ="Season (Year)") +
+  scale_linetype_discrete(name = "Taxa", labels = Spp.labs2) +
+  scale_color_manual(values = c("brown4", "mediumpurple", "yellow", "turquoise1", "hotpink"),name = "Taxa", labels = Spp.labs2) +
+  scale_shape_discrete(name = "Taxa", labels = Spp.labs2) +
+  theme_IRboxplot +
+  theme(legend.text = element_text(face = "italic")) +
+  theme(axis.title=element_text(size = 15))
+myplot_otherPH
+ggsave(myplot_otherPH, file = "Other_PH_Line_graph1.pdf", bg = "transparent", width = 26, height = 15, units = "cm")
+```
+#For changing text size
+
+
++theme(axis.title=element_text(size = x))
+size = 12, face = "bold", color = "black"
+```
+
+
+
