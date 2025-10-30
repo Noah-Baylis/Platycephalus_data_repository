@@ -1,0 +1,821 @@
+#Fish Length-Frequency Analysis 
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ggtext)
+```
+
+```{r}
+install.packages("ggridges")
+```
+
+
+```{r}
+library(ggridges)
+```
+
+```{r}
+LFD <- read.csv("Length Frequency Data.csv")
+```
+
+```{r}
+LFD <- LFD %>%
+  mutate(Location = if_else(Location == "North Stradbroke", "North Stradbroke Island", Location))
+```
+
+
+```{r}
+LFD$Date <- as.Date(LFD$Date, tryFormats = c("%d/%m/%Y"))
+```
+
+```{r}
+LFD$Year <- substr(LFD$Date, 1, 4)
+LFD$Month <- substr(LFD$Date, 6, 7)
+```
+
+
+```{r}
+LFD <- LFD %>% mutate(Month_name = case_when(Month == "01" ~ "Jan",
+                                               Month == "02" ~ "Feb",
+                                               Month == "03" ~ "Mar",
+                                               Month == "04" ~ "Apr",
+                                               Month == "05" ~ "May",
+                                               Month == "06" ~ "Jun",
+                                               Month == "07" ~ "Jul",
+                                               Month == "08" ~ "Aug",
+                                              Month == "09" ~ "Sep",
+                                               Month == "10" ~ "Oct",
+                                               Month == "11" ~ "Nov",
+                                               Month == "12" ~ "Dec"))
+
+LFD$Month_name <- factor(LFD$Month_name, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+```
+
+```{r}
+LFD$Year <- as.numeric(LFD$Year)
+LFD$Month <- as.numeric(LFD$Month)
+```
+
+```{r}
+LFD <- LFD %>%
+  mutate(Season = ifelse(Month %in% 9:11, "Spring",
+                          ifelse(Month %in% c(12,1,2), "Summer",
+                                 ifelse(Month %in% 3:5, "Autumn",
+                                        "Winter"))))
+
+LFD$Season <- factor(LFD$Season, levels = c("Spring", "Summer", "Autumn", "Winter"))
+LFD$Month_name <- as.factor((LFD$Month_name))
+```
+
+```{r}
+LFD$Location <- factor(LFD$Location, levels = c("North Stradbroke Island", "Port Hacking", "Maria Island"))
+```
+
+
+```{r}
+lenfreq1 <- ggplot(data=LFD,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)") +
+  theme_bw()
+```
+
+```{r}
+lenfreq1 + facet_wrap(vars(Location))
+```
+
+```{r}
+lenfreq1 + facet_grid(rows=vars(Location), cols=vars(Species)) 
+ggsave("Overall Length Frequency Histogram.pdf", width = 40, height = 20, units = "cm")
+```
+
+```{r}
+lenfreq1 + facet_grid(rows=vars(Location), cols=vars(Year))
+```
+```{r}
+LFD_NSI <- LFD %>%
+  filter(Location == "North Stradbroke Island") 
+```
+
+```{r}
+LFD_PH <- LFD %>%
+  filter(Location == "Port Hacking")
+```
+
+```{r}
+LFD_MAI <- LFD %>%
+  filter(Location == "Maria Island")
+```
+
+```{r}
+LFD_NSI2 <- LFD_NSI %>%
+  filter(Species == "A. jugosa")
+```
+
+#A. jugosa at NSI
+
+```{r}
+lenfreq2 <- ggplot(data=LFD_NSI2,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "A. jugosa at NSI") + 
+  theme_bw() 
+```
+
+
+```{r}
+lenfreq2 + facet_wrap(vars(Month_name), scales = "free")
+ggsave("A. jugosa at NSI LF Histogram.pdf")
+```
+```{r}
+LFD_PH3 <- LFD_PH %>%
+  filter(Species == "P. grandispinis")
+```
+
+```{r}
+lenfreq3 <- ggplot(data=LFD_PH3,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "P. grandispinis at PH") +
+  theme_bw()
+```
+
+```{r}
+lenfreq3 + facet_wrap(vars(Month_name))
+ggsave("P. grandispinis at PH LF Histogram.pdf")
+```
+
+```{r}
+LFD_PH2 <- LFD_PH %>%
+    filter(Species == "P. caeruleopunctatus ")
+```
+
+```{r}
+lenfreq4 <- ggplot(data=LFD_PH2,aes(x=TL)) +
+  geom_histogram(binwidth=0.5,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "P. caeruleopunctatus at PH") +
+  theme_bw()
+```
+
+```{r}
+lenfreq4 + facet_wrap(vars(Month_name))
+ggsave("P. caeruleopunctatus at PH LF Histogram.pdf")
+```
+
+```{r}
+LFD_grandispinis <- LFD %>%
+  filter(Species == "P. grandispinis")
+```
+
+```{r}
+lenfreq_grandispinis <- ggplot(data=LFD_grandispinis,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=1,boundary=0,closed="left",
+                 color="black",position="stack") +
+  scale_fill_manual(values=c("red","blue")) +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+   labs(title = "P. grandispinis at PH and NSI") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+lenfreq_grandispinis
+```
+
+
+```{r}
+lenfreq_grandispinis + facet_wrap(vars(Month_name))
+ggsave("P. grandispinis between sites LF Histogram.pdf")
+```
+```{r}
+LFD_bassensis <- LFD_MAI %>%
+  filter(Species == "P. bassensis")
+```
+
+```{r}
+lenfreq6 <- ggplot(data=LFD_bassensis,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "P. bassensis at MAI") +
+  theme_bw() 
+```
+
+```{r}
+lenfreq6 + facet_wrap(vars(Month_name))
+ggsave("P. bassensis at MAI LF Histogram.pdf")
+```
+```{r}
+LFD_tuberculata <- LFD_NSI %>%
+  filter(Species == "S. tuberculata")
+```
+
+```{r}
+lenfreq7 <- ggplot(data=LFD_tuberculata,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "S. tuberculata at NSI") +
+  theme_bw()
+```
+
+```{r}
+lenfreq7 + facet_wrap(vars(Month_name))
+ggsave("S. tuberculata at NSI LF Histogram.pdf")
+```
+```{r}
+LFD_endrachtensis <- LFD_NSI %>%
+  filter(Species == "P. endrachtensis")
+```
+
+```{r}
+lenfreq8 <- ggplot(data=LFD_endrachtensis,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "P. endrachtensis at NSI") +
+  theme_bw()
+```
+
+```{r}
+lenfreq8 + facet_wrap(vars(Month_name))
+ggsave("P. endrachtensis at NSI LF Histogram.pdf")
+```
+```{r}
+LFD_richardsoni <- LFD %>%
+  filter(Species == "P. richardsoni")
+```
+
+```{r}
+lenfreq_richardsoni <- ggplot(data=LFD_richardsoni,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=1,boundary=0,closed="left",
+                 color="black",position="stack") +
+  scale_fill_manual(values=c("green","blue")) +
+  scale_y_continuous(name="Number of Fish",limits = c(0, 16), expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+   labs(title = "P. richardsoni at PH and MAI") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+lenfreq_richardsoni
+```
+```{r}
+lenfreq_richardsoni + facet_wrap(vars(Month_name))
+ggsave("P. richardsoni between sites LF Histogram.pdf")
+```
+
+```{r}
+LFD_jugosa <- LFD %>%
+  filter(Species == "A. jugosa")
+```
+
+```{r}
+lenfreq_jugosa <- ggplot(data=LFD_jugosa,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=1,boundary=0,closed="left",
+                 color="black",position="stack") +
+  scale_fill_manual(values=c("red","blue")) +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+   labs(title = "A. jugosa at PH and NSI") +
+  theme_bw()
+lenfreq_jugosa
+```
+```{r}
+lenfreq_jugosa + facet_wrap(vars(Month_name))
+ggsave("A. jugosa between sites LF Histogram.pdf")
+```
+```{r}
+LFD_ratabulus <- LFD %>%
+  filter(Species == "Ratabulus spp.")
+```
+
+```{r}
+lenfreq_ratabulus <- ggplot(data=LFD_ratabulus,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=1,boundary=0,closed="left",
+                 color="black",position="stack") +
+  scale_fill_manual(values=c("red","blue")) +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+   labs(title = "Ratabulus spp. at PH and NSI") +
+  theme_bw()
+lenfreq_ratabulus
+```
+```{r}
+lenfreq_ratabulus + facet_wrap(vars(Month_name))
+ggsave("Ratabulus spp. between sites LF Histogram.pdf")
+```
+
+```{r}
+LFD_PH_richardsoni <- LFD_richardsoni %>%
+  filter(Location == "Port Hacking")
+```
+
+```{r}
+LFD_MAI_richardsoni <- LFD_richardsoni %>%
+  filter(Location == "Maria Island")
+```
+
+
+```{r}
+LFD_big6 <- LFD %>%
+  filter(Species == "A. jugosa"|
+           Species == "P. bassensis"|
+           Species == "P. caeruleopunctatus "|
+           Species == "P. endrachtensis"|
+           Species == "P. grandispinis"|
+           Species == "P. richardsoni")
+
+LFD_big6$Species <- factor(LFD_big6$Species, levels = c("P. bassensis", "P. caeruleopunctatus ", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+```
+
+#Use some variation of the following code to order species with A. jugosa last
+
+Spp.labs <- c("P. bassensis", "P. caeruleopunctatus", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa")
+
+```{r}
+lenfreq8 <- ggplot(data=LFD_big6,aes(x=TL)) +
+  geom_histogram(binwidth=1,boundary=0,closed="left",
+                 fill="gray80",color="black") +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(0, 16)) +
+  labs(title = "Platycephalidae Length-Frequency") +
+  theme_bw()
+```
+
+```{r}
+lenfreq8 + facet_grid(rows=vars(Species), cols=vars(Season), scales = "free") 
+ggsave("Platycephalidae Length-Frequency.pdf")
+```
+#Seasonal Histograms - FROM HERE
+
+```{r}
+LFD_tuberculata <- LFD %>%
+  filter(Species == "S. tuberculata")
+```
+
+```{r}
+ylabel_tuberculata <- expression(paste("Number of larval ", italic("S. tuberculata")))
+```
+
+```{r}
+lenfreq_tuberculata <- ggplot(data=LFD_tuberculata,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.5) +
+  scale_fill_manual(values=c("red")) +
+  scale_y_continuous(name=ylabel_tuberculata, expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  theme_bw() +
+  theme(legend.position = "bottom") 
+lenfreq_tuberculata
+```
+```{r}
+lenfreq_tuberculata + facet_wrap(vars(Season)) +
+theme(axis.title=element_text(size = 15))
+ggsave("14 A. jugosa LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+
+
+```{r}
+LFD_jugosa <- LFD %>%
+  filter(Species == "A. jugosa")
+```
+
+```{r}
+ylabel_jugosa <- expression(paste("Number of larval ", italic("A. jugosa")))
+```
+
+```{r}
+lenfreq_jugosa <- ggplot(data=LFD_jugosa,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.5) +
+  scale_fill_manual(values=c("red")) +
+  scale_y_continuous(name=ylabel_jugosa, expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 3.5, linetype = "dashed") +
+  geom_vline(xintercept = 5)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+    theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12)) 
+lenfreq_jugosa
+```
+
+```{r}
+lenfreq_jugosa + facet_wrap(vars(Season)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Updated A. jugosa LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_bassensis <- LFD %>%
+  filter(Species == "P. bassensis")
+```
+
+```{r}
+ylabel_bassensis <- expression(paste("Number of larval ", italic("P. bassensis")))
+```
+
+```{r}
+lenfreq_bassensis <- ggplot(data=LFD_bassensis,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.5) +
+  scale_fill_manual(values=c("blue")) +
+  scale_y_continuous(name=ylabel_bassensis,expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 6, linetype = "dashed") +
+  geom_vline(xintercept = 8.5)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+   theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12))
+lenfreq_bassensis
+```
+
+```{r}
+lenfreq_bassensis + facet_wrap(vars(Season))+
+theme(axis.title=element_text(size = 15))
+ggsave("Updated P. bassensis LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_endrachtensis <- LFD %>%
+  filter(Species == "P. endrachtensis")
+```
+
+```{r}
+ylabel_endrachtensis <- expression(paste("Number of larval ", italic("P. endrachtensis")))
+```
+
+```{r}
+lenfreq_endrachtensis <- ggplot(data=LFD_endrachtensis,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.5) +
+  scale_fill_manual(values=c("red")) +
+  scale_y_continuous(name=ylabel_endrachtensis,(breaks = seq(0, 18, 4)),expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 4, linetype = "dashed") +
+  geom_vline(xintercept = 7)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+   theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12))
+lenfreq_endrachtensis
+```
+
+```{r}
+lenfreq_endrachtensis + facet_wrap(vars(Season))+
+theme(axis.title=element_text(size = 15))
+ggsave("Updated P. endrachtensis LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_caeruleopunctatus <- LFD %>%
+  filter(Species == "P. caeruleopunctatus ")
+```
+
+```{r}
+ylabel_caeruleopunctatus <- expression(paste("Number of larval ", italic("P. caeruleopunctatus")))
+```
+
+```{r}
+lenfreq_caeruleopunctatus <- ggplot(data=LFD_caeruleopunctatus,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.5) +
+  scale_fill_manual(values=c("green")) +
+  scale_y_continuous(name=ylabel_caeruleopunctatus,expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 4.5, linetype = "dashed") +
+  geom_vline(xintercept = 7.5)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+   theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12))
+lenfreq_caeruleopunctatus
+```
+
+```{r}
+lenfreq_caeruleopunctatus + facet_wrap(vars(Season)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Updated P. caeruleopunctatus LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_richardsoni <- LFD %>%
+  filter(Species == "P. richardsoni")
+```
+
+```{r}
+ylabel_richardsoni <- expression(paste("Number of larval ", italic("P. richardsoni")))
+```
+
+```{r}
+lenfreq_richardsoni <- ggplot(data=LFD_richardsoni,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.35) +
+  scale_fill_manual(values=c("blue", "green")) +
+  scale_y_continuous(name=ylabel_richardsoni,(breaks = seq(0, 18, 4)),expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 4, linetype = "dashed") +
+  geom_vline(xintercept = 6)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+   theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12))
+lenfreq_richardsoni
+```
+```{r}
+lenfreq_richardsoni + facet_wrap(vars(Season)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Updated P. richardsoni LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_grandispinis <- LFD %>%
+  filter(Species == "P. grandispinis")
+```
+
+```{r}
+ylabel_grandispinis <- expression(paste("Number of larval ", italic("P. grandispinis")))
+```
+
+```{r}
+lenfreq_grandispinis <- ggplot(data=LFD_grandispinis,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.35) +
+  scale_fill_manual(values=c("red", "green")) +
+  scale_y_continuous(name=ylabel_grandispinis,expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 4, linetype = "dashed") +
+  geom_vline(xintercept = 7.5)+
+  theme_bw() +
+  theme(legend.position = "bottom") +
+   theme(axis.title=element_text(size = 15)) +
+theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12))
+lenfreq_grandispinis
+```
+```{r}
+lenfreq_grandispinis + facet_wrap(vars(Season)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Updated P. grandispinis LF histogram.pdf", width = 26, height = 16, units = "cm")
+```
+```{r}
+LFD_fuscus <- LFD %>%
+  filter(Species == "P. fuscus")
+```
+
+```{r}
+ylabel_fuscus <- expression(paste("Number of larval ", italic("P. fuscus")))
+```
+
+```{r}
+lenfreq_fuscus <- ggplot(data=LFD_fuscus,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.35) +
+  scale_fill_manual(values=c("green")) +
+  scale_y_continuous(name=ylabel_fuscus,(breaks = seq(0, 3, 1)), expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 4.5, linetype = "dashed") +
+  geom_vline(xintercept = 6)+
+  theme_bw() +
+  theme(legend.position = "bottom") 
+lenfreq_fuscus
+```
+```{r}
+lenfreq_fuscus + facet_wrap(vars(Month_name)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Month P. fuscus LF histogram.pdf", width = 26, height = 15, units = "cm")
+```
+```{r}
+LFD_ratabulus <- LFD %>%
+  filter(Species == "Ratabulus spp.")
+```
+
+```{r}
+ylabel_ratabulus <- expression(paste("Number of larval ", italic("Ratabulus spp.")))
+```
+
+```{r}
+lenfreq_ratabulus <- ggplot(data=LFD_ratabulus,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.35) +
+  scale_fill_manual(values=c("red", "green")) +
+  scale_y_continuous(name=ylabel_ratabulus,expand=expansion(mult=c(0,0.05))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 14), (breaks = seq(1, 14, 1)))  +
+  geom_vline(xintercept = 3, linetype = "dashed") +
+  geom_vline(xintercept = 6.5)+
+  theme_bw() +
+  theme(legend.position = "bottom") 
+lenfreq_ratabulus
+```
+```{r}
+lenfreq_ratabulus + facet_wrap(vars(Month_name)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Month Ratabulus spp. LF histogram.pdf", width = 26, height = 15, units = "cm")
+```
+```{r}
+jugosa_concentration <- Combined_data_platys %>%
+  filter(species_nice == "A. jugosa")
+```
+
+```{r}
+mean(jugosa_concentration$species_conc_100)
+```
+
+```{r}
+pedimacula_conc <- Combined_data_platys_2 %>%
+  filter(species_nice == "O. pedimacula")
+```
+
+```{r}
+mean(pedimacula_conc$species_conc_100)
+```
+```{r}
+endrach_conc <- Combined_data_platys %>%
+  filter(species_nice == "P. endrachtensis")
+```
+
+```{r}
+mean(endrach_conc$species_conc_100)
+```
+
+```{r}
+grandi_conc_NSI <- Combined_data_platys %>%
+  filter(species_nice == "P. grandispinis")
+```
+
+```{r}
+grandi_conc_NSI2 <- grandi_conc_NSI %>%
+  filter(Project_name == "NRS_NSI")
+```
+
+```{r}
+mean(grandi_conc_NSI2$species_conc_100)
+```
+
+```{r}
+ratabulus_conc_NSI <- Combined_data_platys_2 %>%
+  filter(species_nice == "Ratabulus spp.")
+```
+
+```{r}
+ratabulus_conc_NSI2 <- ratabulus_conc_NSI %>%
+  filter(Project_name == "NRS_NSI")
+```
+
+```{r}
+mean(ratabulus_conc_NSI2$species_conc_100)
+```
+
+```{r}
+tuberculata_conc <- Combined_data_platys_2 %>%
+  filter(species_nice == "S. tuberculata")
+```
+
+```{r}
+mean(tuberculata_conc$species_conc_100)
+```
+
+```{r}
+caeruleo_conc <- Combined_data_platys %>%
+  filter(species_nice == "P. caeruleopunctatus")
+```
+
+```{r}
+mean(caeruleo_conc$species_conc_100)
+```
+
+```{r}
+fuscus_conc <- Combined_data_platys_2 %>%
+  filter(species_nice == "P. fuscus")
+```
+
+```{r}
+mean(fuscus_conc$species_conc_100)
+```
+
+```{r}
+grandi_conc_PH <- Combined_data_platys %>%
+  filter(species_nice == "P. grandispinis")
+```
+
+```{r}
+grandi_conc_PH2 <- grandi_conc_PH %>%
+  filter(Project_name == "NRS_PH")
+```
+
+```{r}
+mean(grandi_conc_PH2$species_conc_100)
+```
+
+```{r}
+richardsoni_conc_PH <- Combined_data_platys %>%
+  filter(species_nice == "P. richardsoni")
+```
+
+```{r}
+richardsoni_conc_PH2 <- richardsoni_conc_PH %>%
+  filter(Project_name == "NRS_PH")
+```
+
+```{r}
+mean(richardsoni_conc_PH2$species_conc_100)
+```
+
+```{r}
+ratty_PH <- Combined_data_platys_2 %>%
+  filter(species_nice == "Ratabulus spp.")
+```
+
+```{r}
+ratty_PH2 <- ratty_PH %>%
+  filter(Project_name == "NRS_PH")
+```
+
+```{r}
+mean(ratty_PH2$species_conc_100)
+```
+
+```{r}
+bassensis_conc <- Combined_data_platys %>%
+  filter(species_nice == "P. bassensis")
+```
+
+```{r}
+mean(bassensis_conc$species_conc_100)
+```
+
+```{r}
+richardsoni_MAI <- Combined_data_platys %>%
+  filter(species_nice == "P. richardsoni")
+```
+
+```{r}
+richardsoni_MAI2 <- richardsoni_MAI %>%
+  filter(Project_name == "NRS_MAI")
+```
+
+```{r}
+mean(richardsoni_MAI2$species_conc_100)
+```
+
+```{r}
+lenfreq_final <- ggplot(data=LFD_big6,aes(x=TL)) +
+  geom_histogram(aes(fill=Location),binwidth=0.5,boundary=0,closed="left",
+                 color="black",position="identity", alpha = 0.35) +
+  scale_fill_manual(values=c("red", "green", "blue")) +
+  scale_y_continuous(name="Number of Fish",expand=expansion(mult=c(0,0.5))) +
+  scale_x_continuous(name="Standard Length (mm)", limits = c(1, 13.5), breaks = seq(1, 13.5, 1)) +
+  theme_bw() +
+  theme(legend.text = element_text(size = 35)) +
+  theme(legend.title = element_text(size = 40)) +
+  theme(legend.position = "bottom") +
+  theme(axis.title=element_text(size = 40)) +
+theme(axis.text.y = element_text(size = 30)) +
+  theme(axis.text.x = element_text(size = 30)) +
+  theme(strip.text.y = element_text(face = "italic", size = 35.5)) +
+  theme(strip.text.x = element_text(size =35.5)) 
+```
+
+```{r}
+lenfreq_final + facet_grid(rows=vars(Species), cols=vars(Season), scales = "free") + 
+  geom_vline(data = filter(LFD_big6, Species =="A. jugosa"), aes(xintercept=5)) +
+  geom_vline(data = filter(LFD_big6, Species =="A. jugosa"), aes(xintercept=3.5), linetype = "dashed") +
+  geom_vline(data = filter(LFD_big6, Species =="P. bassensis"), aes(xintercept=8.5)) +
+  geom_vline(data = filter(LFD_big6, Species =="P. bassensis"), aes(xintercept=6), linetype = "dashed") +
+  geom_vline(data = filter(LFD_big6, Species =="P. caeruleopunctatus "), aes(xintercept=7.5)) +
+  geom_vline(data = filter(LFD_big6, Species =="P. caeruleopunctatus "), aes(xintercept=4.5), linetype = "dashed") +
+  geom_vline(data = filter(LFD_big6, Species =="P. endrachtensis"), aes(xintercept=7)) +
+  geom_vline(data = filter(LFD_big6, Species =="P. endrachtensis"), aes(xintercept=4), linetype = "dashed") +
+  geom_vline(data = filter(LFD_big6, Species =="P. grandispinis"), aes(xintercept=7.5)) +
+  geom_vline(data = filter(LFD_big6, Species =="P. grandispinis"), aes(xintercept=4), linetype = "dashed") +
+  geom_vline(data = filter(LFD_big6, Species =="P. richardsoni"), aes(xintercept=6)) +
+  geom_vline(data = filter(LFD_big6, Species =="P. richardsoni"), aes(xintercept=4), linetype = "dashed") +
+  theme(panel.spacing.y = unit(4, "mm")) +
+  theme(panel.spacing.x = unit(4, "mm")) 
+ggsave("2025 LF histogram.pdf", width = 70, height = 82, units = "cm")
+
+#LFD$Season <- factor(LFD$Season, levels = c("Spring", "Summer", "Autumn", "Winter"))
+#Scales = free_y to change limits on axes
+
+```
+#Flexion lines
+
+```{r}
+vline.data.dashed <- data.frame(z = c(6, 4.5, 4, 4, 4, 3.5, 6, 4.5, 4, 4, 4, 3.5, 6, 4.5, 4, 4, 4, 3.5, 6, 4.5, 4, 4, 4, 3.5), vs = c("Spring", "Summer", "Autumn", "Winter"), am = c("P. bassensis", "P. caeruleopunctatus ", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+
+vline.data.solid <- data.frame(z = c(8.5, 7.5, 7, 7.5, 6, 5, 8.5, 7.5, 7, 7.5, 6, 5, 8.5, 7.5, 7, 7.5, 6, 5, 8.5, 7.5, 7, 7.5, 6, 5), vs = c("Spring", "Summer", "Autumn", "Winter"), am = c("P. bassensis", "P. caeruleopunctatus ", "P. endrachtensis", "P. grandispinis", "P. richardsoni", "A. jugosa"))
+```
+
+
+
