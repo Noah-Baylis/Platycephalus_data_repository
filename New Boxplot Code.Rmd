@@ -1,0 +1,233 @@
+#Updated boxplot code
+
+```{r}
+Combined_data$Total_abun <- rowSums(Combined_data[14:24])
+```
+
+```{r}
+Combined_data <- Combined_data %>%
+  mutate(conc_per_m3 = Total_abun/NewVol) %>%
+  mutate(conc_per_100_m3 = conc_per_m3*100) %>%
+  mutate(conc_log = log(conc_per_100_m3 + 1))
+```
+
+```{r}
+Combined_data_long <- Combined_data %>%
+  pivot_longer(cols = 14:24, names_to = "Species", values_to = "Abundance")#cols = species columns only
+```
+
+```{r}
+Combined_data_long <- Combined_data_long %>%
+  mutate(species_conc = Abundance/NewVol) %>%
+  mutate(species_conc_100 = species_conc*100) %>%
+  mutate(species_conc_log = log(species_conc_100 + 1))
+```
+
+```{r}
+unique(Combined_data_long$Species)
+```
+
+
+```{r}
+Combined_data_long$Species <- factor(Combined_data_long$Species, levels = c("P..bassensis",  "P..caeruleopunctatus", "P..endrachtensis", "P..fuscus", "P..grandispinis", "P..richardsoni", "A..jugosa", "O..pedimacula", "R..mcgroutheri", "Ratabulus.spp", "S..tuberculata"))
+```
+
+```{r}
+Species <- c("P..bassensis",  "P..caeruleopunctatus", "P..endrachtensis", "P..fuscus", "P..grandispinis", "P..richardsoni", "A..jugosa", "O..pedimacula", "R..mcgroutheri", "Ratabulus.spp", "S..tuberculata")
+species_nice <- c("P. bassensis",  "P. caeruleopunctatus", "P. endrachtensis", "P. fuscus", "P. grandispinis", "P. richardsoni", "A. jugosa", "O. pedimacula", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata")
+names_to_join_noah <- data.frame(Species, species_nice)
+Combined_data_long <- left_join(Combined_data_long, names_to_join_noah, by = "Species")
+Combined_data_long$species_nice <- factor(Combined_data_long$species_nice,
+                                          levels = c("P. bassensis",  "P. caeruleopunctatus", "P. endrachtensis", "P. fuscus", "P. grandispinis", "P. richardsoni", "A. jugosa", "O. pedimacula", "R. mcgroutheri", "Ratabulus spp.", "S. tuberculata"))
+```
+
+
+```{r}
+Combined_data_long$Project_name <- factor(Combined_data_long$Project_name, levels = c("NRS_NSI", "NRS_PH", "NRS_MAI"))
+```
+
+```{r}
+Project_name <- c("NRS_NSI", "NRS_PH", "NRS_MAI")
+location_new <- c("North Stradbroke Island", "Port Hacking", "Maria Island")
+names_to_join <- data.frame(Project_name, location_new)
+Combined_data <- left_join(Combined_data, names_to_join, by = "Project_name")
+Combined_data$location_new <- factor(Combined_data$location_new, 
+                                     levels = c("North Stradbroke Island", "Port Hacking", "Maria Island"))
+```
+
+
+```{r}
+summary(Combined_data_long)
+```
+
+
+```{r}
+PlatyNSI <- Combined_data_long %>%
+  filter(Project_name == "NRS_NSI")
+```
+
+```{r}
+PlatyPH <- Combined_data_long %>%
+  filter(Project_name == "NRS_PH")
+```
+
+```{r}
+PlatyMAI <- Combined_data_long %>%
+  filter(Project_name == "NRS_MAI")
+```
+
+```{r}
+ggplot(data=Combined_data, aes(x = location_new, y = conc_log, fill = Season)) + 
+  geom_boxplot() +
+  labs(x= "Station",  y = bquote('Log'^10*' Concentration (Individuals per 100'~m^3*')')) +
+  theme_IRboxplot +
+    theme(axis.title=element_text(size = 15)) +
+    theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.text.x = element_text(size = 12)) +
+   theme(legend.title = element_text(size = 15)) +
+  theme(legend.text = element_text(size = 15)) +
+  theme(legend.position = "bottom")
+ggsave("Manuscript overall boxplot.pdf", width = 26, height = 20, units = "cm")
+```
+
+
+```{r}
+PlatyNSI$Year <- as.factor(PlatyNSI$Year)
+PlatyNSI <- PlatyNSI %>%
+group_by(Season)
+ggplot(data=PlatyNSI, aes(x = Year, y = conc_log, fill = Season)) + 
+  geom_boxplot() +
+  labs(x= "Year", y = bquote('Log'^10*' Concentration (Individuals per 100'~m^3*')')) +
+   theme_IRboxplot +
+    theme(axis.title=element_text(size = 22)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+   theme(legend.title = element_text(size = 22)) +
+  theme(legend.position = "none")
+ggsave("Manuscript NSI by year boxplot.pdf", width = 26, height = 20, units = "cm")
+```
+```{r}
+PlatyPH$Year <- as.factor(PlatyPH$Year)
+PlatyPH <- PlatyPH %>%
+group_by(Season)
+ggplot(data=PlatyPH, aes(x = Year, y = conc_log, fill = Season)) + 
+  geom_boxplot() +
+  labs(x= "Year", y = bquote('Log'^10*' Concentration (Individuals per 100'~m^3*')')) +
+   theme_IRboxplot +
+    theme(axis.title=element_text(size = 22)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+   theme(legend.title = element_text(size = 22)) +
+  theme(legend.text = element_text(size = 22)) +
+  theme(legend.position = "none")
+ggsave("Manuscript PH by year boxplot.pdf", width = 26, height = 20, units = "cm")
+```
+```{r}
+PlatyMAI$Year <- as.factor(PlatyMAI$Year)
+PlatyMAI <- PlatyMAI %>%
+group_by(Season)
+ggplot(data=PlatyMAI, aes(x = Year, y = conc_log, fill = Season)) + 
+  geom_boxplot() +
+  labs(x= "Year", y = bquote('Log'^10*' Concentration (Individuals per 100'~m^3*')')) +
+   theme_IRboxplot +
+    theme(axis.title=element_text(size = 22)) +
+    theme(axis.text.y = element_text(size = 20)) +
+  theme(axis.text.x = element_text(size = 20)) +
+   theme(legend.title = element_text(size = 22)) +
+  theme(legend.text = element_text(size = 22)) +
+  theme(legend.position = "bottom")
+ggsave("Manuscript MAI by year boxplot.pdf", width = 26, height = 20, units = "cm")
+```
+```{r}
+MAI_boxplot <- ggplot(data=PlatyMAI, 
+             aes(x = species_nice, y = species_conc_log, fill = Season)) + 
+  geom_boxplot()+
+  labs(x = "Taxa", y = bquote('Log'[10]*' Concentration (Individuals per 100'~m^3*')')) +
+    theme_IRboxplot +
+  theme(axis.text.x = element_text(face = "italic")) +
+  theme(axis.text.x = element_text(size = 12)) +
+theme(axis.title=element_text(size = 15)) +
+  theme(axis.text.y = element_text(size = 12)) +
+  theme(legend.position = "bottom")
+MAI_boxplot
+ggsave("Updated Final MAI boxplot.pdf", width = 26, height = 18, units = "cm")
+```
+```{r}
+PH_boxplot <- ggplot(data=PlatyPH, 
+             aes(x = species_nice, y = species_conc_log, fill = Season)) + 
+  geom_boxplot()+
+  labs(x = "Taxa", y = bquote('Log'[10]*' Concentration (Individuals per 100'~m^3*')')) + 
+    theme_IRboxplot +
+  theme(axis.text.x = element_text(face = "italic")) +
+  theme(axis.text.x = element_text(size = 12)) +
+  theme(axis.title=element_text(size = 15)) +
+  theme(axis.text.y = element_text(size = 12)) +
+  theme(legend.position = "bottom")
+PH_boxplot
+ggsave("Updated Final PH boxplot.pdf", width = 26, height = 18, units = "cm")
+```
+```{r}
+NSI_boxplot <- ggplot(data=PlatyNSI, 
+             aes(x = species_nice, y = species_conc_log, fill = Season)) + 
+  geom_boxplot()+
+  labs(x = "Taxa", y = bquote('Log'[10]*' Concentration (Individuals per 100'~m^3*')')) + 
+    theme_IRboxplot +
+  theme(axis.text.x = element_text(face = "italic")) +
+  theme(axis.text.x = element_text(size = 12)) +
+  theme(axis.title=element_text(size = 15)) +
+  theme(axis.text.y = element_text(size = 12)) +
+  theme(legend.position = "bottom")
+NSI_boxplot
+ggsave("Updated Final NSI boxplot.pdf", width = 26, height = 18, units = "cm")
+```
+
+
+```{r}
+Overall_boxplot <- ggplot(data=Combined_data_long, 
+             aes(x = Species, y = species_conc_log, colour = Season)) + 
+  geom_boxplot()+
+  labs(x = "Species", y = bquote('Concentration (Number of fish per 100'~m^3*')'), 
+       title = "Concentration of Fish") + 
+    theme_IRboxplot
+Overall_boxplot
+```
+#Don't use above overall plot
+
+#Notes
+
+Log+1 transform or sqrt transform
+
+Flatfish_wide_simple$Flatfish_Bothidae <- rowSums(Flatfish_wide_simple[11:16])
+
+Combined$Total_abun <- rowSums(Combined[14:25])
+
+
+
+
+#Length-Frequency Boxplots
+  
+```{r}
+LF_boxplot <- ggplot(data=LFD_big6, 
+             aes(x = Season, y = TL, fill = Season)) + 
+  geom_boxplot()+
+  labs(x = "Season", y = bquote('Standard Length (mm)'))+ 
+    theme_IRboxplot +
+    #theme(axis.text.x = element_text(face = "italic")) +
+    scale_y_continuous(limits = c(1, 14))  +
+  theme(axis.text.x = element_text(size = 15)) +
+  theme(axis.title=element_text(size = 20)) +
+  theme(axis.text.y = element_text(size = 15)) +
+    theme(axis.title=element_text(size = 25)) +
+  theme(legend.text = element_text(size = 20)) +
+  theme(legend.title = element_text(size = 20)) +
+  theme(strip.text.x = element_text(face = "italic", size = 12)) +
+  theme(legend.position = "none")
+LF_boxplot
+ggsave("Revised LF Boxplot.pdf", width = 30, height = 20, units = "cm")
+```
+```{r}
+LF_boxplot + facet_wrap(vars(Species)) +
+theme(axis.title=element_text(size = 15))
+ggsave("Revised LF Boxplot wrapped.pdf", width = 30, height = 20, units = "cm")
+```
+
